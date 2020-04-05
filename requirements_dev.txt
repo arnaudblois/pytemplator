@@ -1,0 +1,12 @@
+jinja2
+loguru
+wheel
+
+flake8
+pylint-runner 
+tox
+coverage
+Sphinx
+twine
+
+pytest
