@@ -1,6 +1,6 @@
-============
+===========
 Pytemplator
-============
+===========
 
 
 .. image:: https://img.shields.io/pypi/v/pytemplator.svg
@@ -17,24 +17,21 @@ Pytemplator
 
 
 Pytemplator aims to streamline the creation of dynamic templates.
-It is inspired from the excellent `CookieCutter package`_ but offers more flexibility.
+It supports the format from `CookieCutter package`_ but also offers the option
+to generate the context using Python, which in practice provides a better user
+experience and more flexibility.
 
 
 * Free software: Apache Software License 2.0
 * Documentation: https://pytemplator.readthedocs.io.
 
 
-Features
----------
-
-* TODO
-
-
 Credits
---------
+-------
 
-This package was itself initialized using the
-`CookieCutter package`_ and `audreyr/cookiecutter-pypackage`_ project template :)
+This package was originally inspired from the excellent
+`CookieCutter package`_ and `audreyr/cookiecutter-pypackage`_ project template.
+
 
 .. _`CookieCutter package`: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage

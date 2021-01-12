@@ -1,7 +1,6 @@
 """Console script for pytemplator."""
 
 import argparse
-from pathlib import Path
 import sys
 
 from loguru import logger
@@ -12,16 +11,21 @@ def main():
     """Console script for pytemplator."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-b', '--base-dir', default=str(Path.home() / '.pytemplator'),
+        '-b', '--base-dir', default=None,
         help=(
             'The directory which pytemplator can use to store its config files '
-            'and downloaded templates'
+            'and downloaded templates (defaults to $HOME/.pytemplator)'
         ),
     )
     parser.add_argument(
         '-c', '--checkout-branch', default='master',
+        help='Which ref to checkout if using a repo-based template'
+    )
+    parser.add_argument(
+        '-d', '--destination-dir', default=None,
         help=(
-            'Which ref to checkout if using a repo-based template'
+            'The directory where the templated files will be written,'
+            'defaults to the current working directory'
         ),
     )
     parser.add_argument(
@@ -32,13 +36,12 @@ def main():
         )
     )
     args = parser.parse_args()
-
     templator = Templator(**vars(args))
     templator.generate_context()
     templator.render()
-    logger.info("\nSuccess!")
+    logger.info('\nSuccess!')
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())

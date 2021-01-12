@@ -1,3 +1,6 @@
+"""Initialize the context for the templating."""
+
+
 def generate_context():
     """Generate context."""
 
@@ -7,4 +10,5 @@ def generate_context():
         'second_file': 'file2',
         'user': 'John Doe',
         'nested_folder': 'My_Nested_Folder',
+        'remove_test1_file': True,
     }

@@ -1,4 +1,4 @@
-"""Exceptions for Pytemplator.BlockingIOError($0)"""
+"""Exceptions for Pytemplator."""
 
 
 class UserCancellationError(Exception):

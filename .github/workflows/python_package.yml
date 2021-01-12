@@ -1,18 +1,21 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# This workflow will install Python dependencies,
+# run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: Python package
 
 on:
-  [push, pull_request]
+  push:
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
-  build:
+  run-tests:
 
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -20,36 +23,41 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      - name: Get full python version
+        id: full-python-version
+        run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
+      - name: Install poetry
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements_dev.txt
+          curl -fsS -o get-poetry.py https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
+          python get-poetry.py -y
+      - name: Add Poetry to PATH
+        run: echo "${HOME}/.poetry/bin" >> $GITHUB_PATH
+      - name: Configure poetry
+        run: poetry config virtualenvs.in-project true
+      - name: Set up cache
+        uses: actions/cache@v1
+        id: cache
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Ensure cache is healthy
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: poetry run pip --version >/dev/null 2>&1 || rm -rf .venv
+      - name: Install Dependencies
+        run: poetry install
       - name: Lint with flake8 and Pylint
         run: |
-          flake8
-          pylint_runner
+          poetry run flake8
+          poetry run pylint_runner
       - name: Test with pytest
+        run: poetry run pytest --cov=src/ --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+      - name: Build package and publish to test PyPI
+        env:
+          TEST_PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TEST_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
         run: |
-          pytest
-
-  deploy:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
-      run: |
-        python setup.py sdist bdist_wheel
-        twine upload --repository testpypi dist/*
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry build
+          poetry publish -r test-pypi -u $TEST_PYPI_USERNAME -p $TEST_PYPI_PASSWORD
