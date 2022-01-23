@@ -51,7 +51,7 @@ jobs:
           poetry run flake8
           poetry run pylint_runner
       - name: Test with pytest
-        run: poetry run pytest --cov=src/ --cov-report=xml
+        run: apt-get update && apt-get install -y git && poetry run pytest --cov=src/ --cov-report=xml
       - name: Upload coverage
         uses: codecov/codecov-action@v2
       - name: Build package and publish dry-run to test PyPI
