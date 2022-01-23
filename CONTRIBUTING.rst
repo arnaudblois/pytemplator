@@ -54,6 +54,18 @@ If you are proposing a feature:
 * Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
 
+
+Sponsor the project
+~~~~~~~~~~~~~~~~~~~
+
+If you or your company would like to contribute to the development of this package,
+or simply as a nice thank you, feel free to `buy me a coffee`_
+
+
+.. _`buy me a coffee`: https://www.buymeacoffee.com/arnaudblois
+
+
+
 Get Started!
 ------------
 
@@ -64,34 +76,38 @@ Ready to contribute? Here's how to set up `pytemplator` for local development.
 
     $ git clone git@github.com:your_name_here/pytemplator.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Install the local package and dependencies using Poetry::
 
-    $ mkvirtualenv pytemplator
     $ cd pytemplator/
-    $ python setup.py develop
+    $ poetry install
 
-4. Create a branch for local development::
+4. Activate your shell::
+
+    $ poetry shell
+
+5. Install the pre-commits hooks::
+
+    $ pre-commit install && pre-commit install --hook-type commit-msg
+
+6. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
 
-   Now you can make your changes locally.
+Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox::
+7. When you're done making changes, check that your changes pass flake8 and the
+   tests with `pytest`.
 
-    $ flake8 pytemplator tests
-    $ python setup.py test or pytest
-    $ tox
 
-   To get flake8 and tox, just pip install them into your virtualenv.
-
-6. Commit your changes and push your branch to GitHub::
+8. Commit your changes and push your branch to GitHub, remember that the commit
+name must follow the semantic convention::
 
     $ git add .
-    $ git commit -m "Your detailed description of your changes."
+    $ git commit -m "fix: title for commit" -m "Your detailed description of your changes."
     $ git push origin name-of-your-bugfix-or-feature
 
-7. Submit a pull request through the GitHub website.
+9. Submit a pull request through the GitHub website.
+
 
 Pull Request Guidelines
 -----------------------
@@ -102,16 +118,7 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 3.5, 3.6, 3.7 and 3.8, and for PyPy. Check
-   https://travis-ci.com/arnaudblois/pytemplator/pull_requests
-   and make sure that the tests pass for all supported Python versions.
 
-Tips
-----
-
-To run a subset of tests::
-
-$ pytest tests.test_pytemplator
 
 
 Deploying
@@ -119,10 +126,6 @@ Deploying
 
 A reminder for the maintainers on how to deploy.
 Make sure all your changes are committed (including an entry in HISTORY.rst).
-Then run::
 
-$ bump2version patch # possible: major / minor / patch
-$ git push
-$ git push --tags
-
-Travis will then deploy to PyPI if tests pass.
+Be sure everything is pushed and merged to main, then cut a tag corresponding to
+the new version. The Github actions will then automatically upload to Pypi

@@ -8,17 +8,21 @@ Installation
 Stable release
 --------------
 
-To install pytemplator, run this command in your terminal:
+You can either add pytemplator to your project using `Poetry`_ or inside a virtual
+environment by using pip:
 
 .. code-block:: console
 
+    $ poetry add pytemplator
+    # or
     $ pip install pytemplator
 
-This is the preferred method to install pytemplator, as it will always install the most recent stable release.
+
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
 
+.. _Poetry: https://python-poetry.org/
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 

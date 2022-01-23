@@ -2,5 +2,5 @@
 
 
 __author__ = """Arnaud Blois"""
-__email__ = 'hello@arnaudblois.com'
-__version__ = '0.1.0'
+__email__ = "a.blois@ucl.ac.uk"
+__version__ = "0.1.0a0"

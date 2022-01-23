@@ -3,9 +3,9 @@
 import builtins
 from unittest import mock
 
-from tests.utils import TmpdirTestCase
 from pytemplator.exceptions import UserCancellationError
 from pytemplator.utils import check_if_new_dirs_can_be_created
+from tests.utils import TmpdirTestCase
 
 
 class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
@@ -18,8 +18,8 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
         """Test it's true if there's no existing dir."""
         self.assertTrue(
             check_if_new_dirs_can_be_created(
-                directories=[self.tmpdir / 'dir{{solution}}'],
-                context={'solution': 42},
+                directories=[self.tmpdir / "dir{{solution}}"],
+                context={"solution": 42},
                 destination_dir=self.tmpdir,
             )
         )
@@ -29,14 +29,14 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
         Test it deletes the existing dir and returns true
         if the user accepts to overwrite.
         """
-        existing_dir = self.tmpdir / 'dir42'
+        existing_dir = self.tmpdir / "dir42"
         existing_dir.mkdir()
         existing_dir.resolve(strict=True)
-        with mock.patch.object(builtins, 'input', lambda _: 'Y'):
+        with mock.patch.object(builtins, "input", lambda _: "Y"):
             self.assertTrue(
                 check_if_new_dirs_can_be_created(
-                    directories=[self.tmpdir / 'dir{{solution}}'],
-                    context={'solution': 42},
+                    directories=[self.tmpdir / "dir{{solution}}"],
+                    context={"solution": 42},
                     destination_dir=self.tmpdir,
                 )
             )
@@ -45,12 +45,12 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
 
     def test_directories_exist_user_cancels(self):
         """Test that an exception is thrown if user cancels."""
-        existing_dir = self.tmpdir / 'dir42'
+        existing_dir = self.tmpdir / "dir42"
         existing_dir.mkdir()
-        with mock.patch.object(builtins, 'input', lambda _: 'N'):
+        with mock.patch.object(builtins, "input", lambda _: "N"):
             with self.assertRaises(UserCancellationError):
                 check_if_new_dirs_can_be_created(
-                    directories=[self.tmpdir / 'dir{{solution}}'],
-                    context={'solution': 42},
+                    directories=[self.tmpdir / "dir{{solution}}"],
+                    context={"solution": 42},
                     destination_dir=self.tmpdir,
                 )

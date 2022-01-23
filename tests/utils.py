@@ -1,14 +1,14 @@
 """Utility scripts used for the tests."""
 
 import filecmp
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest import TestCase
 
 
 def get_fixture_path():
     """Return the absolute path to the required fixture."""
-    return (Path(__file__).parent / 'fixtures').resolve(strict=True)
+    return (Path(__file__).parent / "fixtures").resolve(strict=True)
 
 
 def are_identical_dirs(dir1: Path, dir2: Path) -> bool:
@@ -17,7 +17,9 @@ def are_identical_dirs(dir1: Path, dir2: Path) -> bool:
     dirs_cmp = filecmp.dircmp(dir1, dir2)
     if dirs_cmp.left_only or dirs_cmp.right_only or dirs_cmp.funny_files:
         return False
-    _, mismatch, errors = filecmp.cmpfiles(dir1, dir2, dirs_cmp.common_files, shallow=False)
+    _, mismatch, errors = filecmp.cmpfiles(
+        dir1, dir2, dirs_cmp.common_files, shallow=False
+    )
     if mismatch or errors:
         return False
     for common_dir in dirs_cmp.common_dirs:
