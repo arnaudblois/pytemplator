@@ -55,7 +55,7 @@ def generate_context_from_json(json_file, context):
 
     Same behavior as cookiecutter.
     """
-    with open(json_file) as file:
+    with open(json_file, encoding="UTF-8") as file:
         questions = json.load(file, object_pairs_hook=OrderedDict)
     for key, value in questions.items():
         question = key.replace("-", " ").replace("_", " ")
@@ -111,10 +111,11 @@ def render_templates(templates, root_directories, context, destination_dir):
 
         for template in jinja_env.list_templates():
             new_file = Path(Template(template).render(context))
+            # pylint: disable=no-member
             new_file.parents[0].mkdir(parents=True, exist_ok=True)
             template = jinja_env.get_template(template)
             content = template.render(context)
-            with open(new_file, "w") as templated_file:
+            with open(new_file, "w", encoding="UTF-8") as templated_file:
                 templated_file.write(content)
 
 
@@ -138,7 +139,6 @@ class Question:
         if self.ask is False:
             self.answer = self.default() if callable(self.default) else self.default
         else:
-
             while self.answer is None or not self.is_valid():
                 if self.validation_errors:
                     logger.warning(

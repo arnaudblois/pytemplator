@@ -33,6 +33,7 @@ class TmpdirTestCase(TestCase):
 
     def setUp(self):
         """Set up a temp directory and locate the fixture."""
+        # pylint: disable=consider-using-with
         self._tmpdir = tempfile.TemporaryDirectory()
         self.tmpdir = Path(self._tmpdir.name)
         self.fixture_dir = get_fixture_path()
