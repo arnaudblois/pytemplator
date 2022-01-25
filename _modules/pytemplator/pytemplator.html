@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pytemplator.pytemplator &mdash; pytemplator 0.1.0a0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pytemplator
+          </a>
+              <div class="version">
+                0.1.0a0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Pytemplator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">pytemplator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pytemplator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>pytemplator.pytemplator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pytemplator.pytemplator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Main module.&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">loguru</span> <span class="kn">import</span> <span class="n">logger</span>
+
+<span class="kn">from</span> <span class="nn">pytemplator.constants</span> <span class="kn">import</span> <span class="n">GIT_REGEX</span><span class="p">,</span> <span class="n">RESERVED_DIR_NAMES</span>
+<span class="kn">from</span> <span class="nn">pytemplator.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BrokenTemplateError</span><span class="p">,</span>
+    <span class="n">InvalidInputError</span><span class="p">,</span>
+    <span class="n">UserCancellationError</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">pytemplator.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">cd</span><span class="p">,</span>
+    <span class="n">generate_context_from_json</span><span class="p">,</span>
+    <span class="n">import_module_from_path</span><span class="p">,</span>
+    <span class="n">is_yes</span><span class="p">,</span>
+    <span class="n">render_templates</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="Templator"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator">[docs]</a><span class="k">class</span> <span class="nc">Templator</span><span class="p">:</span>  <span class="c1"># pylint: disable=too-many-instance-attributes, too-many-arguments</span>
+    <span class="sd">&quot;&quot;&quot;Main class creating a project from a template.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">template_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">checkout_branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;master&quot;</span><span class="p">,</span>
+        <span class="n">destination_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">no_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set up the attributes.</span>
+
+<span class="sd">        template_location can be either a git repo, in which case we</span>
+<span class="sd">        clone/pull and checkout, or a directory.</span>
+
+<span class="sd">        We then call its initialize.py if it exists, otherwise we use</span>
+<span class="sd">        the cookiecutter.json for context.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">base_dir</span> <span class="k">else</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.pytemplator&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">destination_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">destination_dir</span> <span class="k">else</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span> <span class="o">=</span> <span class="n">checkout_branch</span>
+        <span class="k">if</span> <span class="n">GIT_REGEX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">template_location</span><span class="p">):</span>
+            <span class="n">template_name</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">template_location</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.git&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">template_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_git_template</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_template_dir</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cookiecutter&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;pytemplator&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_input</span> <span class="o">=</span> <span class="n">no_input</span>
+
+<div class="viewcode-block" id="Templator.get_git_template"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.get_git_template">[docs]</a>    <span class="k">def</span> <span class="nf">get_git_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the template project from a Git repository.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">):</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;git fetch -p&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t fetch repo, using cached version&quot;</span><span class="p">)</span>
+                <span class="n">use_old_repo</span> <span class="o">=</span> <span class="s2">&quot;Y&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">use_old_repo</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">input</span><span class="p">(</span>
+                        <span class="s2">&quot;Could not fetch from the repo url.</span><span class="se">\n</span><span class="s2">Do you wish to continue &quot;</span>
+                        <span class="s2">&quot;using the version of the template already on file [Y]/N&quot;</span>
+                    <span class="p">)</span>
+                    <span class="ow">or</span> <span class="s2">&quot;Y&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_yes</span><span class="p">(</span><span class="n">use_old_repo</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">UserCancellationError</span> <span class="kn">from</span> <span class="nn">error</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">):</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;git clone </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">BrokenTemplateError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The template could not be cloned from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span></div>
+
+<div class="viewcode-block" id="Templator.prepare_template_dir"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.prepare_template_dir">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_template_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make sure the template directory is in the expected state.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">],</span>
+                    <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The template is a standard directory, not a git repo.&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;checkout&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="p">],</span>
+                    <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The specified branch to checkout does not exist.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">InvalidInputError</span> <span class="kn">from</span> <span class="nn">error</span></div>
+
+<div class="viewcode-block" id="Templator.generate_context"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.generate_context">[docs]</a>    <span class="k">def</span> <span class="nf">generate_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate the context for the `initialize` part of the template.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">initializer</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">/</span> <span class="s2">&quot;initialize.py&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">initialize</span> <span class="o">=</span> <span class="n">import_module_from_path</span><span class="p">(</span><span class="n">initializer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">initialize</span><span class="o">.</span><span class="n">generate_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;pytemplator&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="s2">&quot;cookiecutter&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BrokenTemplateError</span><span class="p">(</span>
+                <span class="s2">&quot;The `initialize.py` does not have a valid generate_context.&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;The template does not have a valid initialize.py file</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Falling back to checking a cookiecutter.json definition file.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">generate_context_from_json</span><span class="p">(</span>
+                    <span class="n">json_file</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">/</span> <span class="s2">&quot;cookiecutter.json&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span>
+                        <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                    <span class="n">no_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">BrokenTemplateError</span><span class="p">(</span>
+                    <span class="s2">&quot;The template is missing a valid initialize.py/cookiecutter.json.&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span></div>
+
+<div class="viewcode-block" id="Templator.render"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.render">[docs]</a>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the folder/files with their names properly templated, then render them.&quot;&quot;&quot;</span>
+        <span class="n">templates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">/</span> <span class="s2">&quot;templates&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">templates</span> <span class="o">=</span> <span class="n">templates</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">root_directories</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Path</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">render_templates</span><span class="p">(</span>
+                <span class="n">destination_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="p">,</span>
+                <span class="n">templates</span><span class="o">=</span><span class="n">templates</span><span class="p">,</span>
+                <span class="n">root_directories</span><span class="o">=</span><span class="n">root_directories</span><span class="p">,</span>
+                <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                <span class="n">no_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">root_directories</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Path</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">RESERVED_DIR_NAMES</span>
+            <span class="p">]</span>
+            <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">templates</span><span class="p">:</span>
+                <span class="n">templates</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">templates</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">root_directories</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">symlink</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">templates</span> <span class="o">/</span> <span class="n">directory</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">render_templates</span><span class="p">(</span>
+                    <span class="n">destination_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="p">,</span>
+                    <span class="n">templates</span><span class="o">=</span><span class="n">templates</span><span class="p">,</span>
+                    <span class="n">root_directories</span><span class="o">=</span><span class="n">root_directories</span><span class="p">,</span>
+                    <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                    <span class="n">no_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Templator.finalize"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run the `finalize` part of the template.&quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">finalizer</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">/</span> <span class="s2">&quot;finalize.py&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">final_script</span> <span class="o">=</span> <span class="n">import_module_from_path</span><span class="p">(</span><span class="n">finalizer</span><span class="p">)</span>
+            <span class="n">final_script</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Arnaud Blois.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
