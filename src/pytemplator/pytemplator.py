@@ -9,7 +9,11 @@ from pathlib import Path
 from loguru import logger
 
 from pytemplator.constants import GIT_REGEX, RESERVED_DIR_NAMES
-from pytemplator.exceptions import BrokenTemplateError, UserCancellationError
+from pytemplator.exceptions import (
+    BrokenTemplateError,
+    InvalidInputError,
+    UserCancellationError,
+)
 from pytemplator.utils import (
     cd,
     generate_context_from_json,
@@ -19,7 +23,7 @@ from pytemplator.utils import (
 )
 
 
-class Templator:  # pylint: disable=too-many-instance-attributes
+class Templator:  # pylint: disable=too-many-instance-attributes, too-many-arguments
     """Main class creating a project from a template."""
 
     def __init__(
@@ -28,6 +32,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes
         template_location: str = None,
         checkout_branch: str = "master",
         destination_dir: str = None,
+        no_input: bool = False,
     ):
         """Set up the attributes.
 
@@ -54,6 +59,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes
             self.template_dir = Path(template_location).resolve(strict=True)
         self.prepare_template_dir()
         self.context = {"cookiecutter": {}, "pytemplator": {}}
+        self.no_input = no_input
 
     def get_git_template(self, url):
         """Get the template project from a Git repository."""
@@ -61,13 +67,17 @@ class Templator:  # pylint: disable=too-many-instance-attributes
             with cd(self.template_dir):
                 subprocess.run("git fetch -p", shell=True, check=True)
         except subprocess.CalledProcessError as error:
-            use_old_repo = (
-                input(
-                    "Could not fetch from the repo url.\nDo you wish to continue "
-                    "using the version of the template already on file [Y]/N"
+            if self.no_input:
+                logger.warning("Couldn't fetch repo, using cached version")
+                use_old_repo = "Y"
+            else:
+                use_old_repo = (
+                    input(
+                        "Could not fetch from the repo url.\nDo you wish to continue "
+                        "using the version of the template already on file [Y]/N"
+                    )
+                    or "Y"
                 )
-                or "Y"
-            )
             if not is_yes(use_old_repo):
                 raise UserCancellationError from error
         except FileNotFoundError:
@@ -81,18 +91,33 @@ class Templator:  # pylint: disable=too-many-instance-attributes
 
     def prepare_template_dir(self):
         """Make sure the template directory is in the expected state."""
-        try:
-            with cd(self.template_dir):
-                subprocess.run(["git", "checkout", self.checkout_branch], check=True)
-        except subprocess.CalledProcessError:
-            logger.info("The template is a standard directory, not a git repo.")
+        with cd(self.template_dir):
+            try:
+                subprocess.run(
+                    ["git", "status"],
+                    check=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError:
+                logger.info("The template is a standard directory, not a git repo.")
+                return
+
+            try:
+                subprocess.run(
+                    ["git", "checkout", self.checkout_branch],
+                    check=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError as error:
+                logger.error("The specified branch to checkout does not exist.")
+                raise InvalidInputError from error
 
     def generate_context(self):
         """Generate the context for the `initialize` part of the template."""
         try:
             initializer = (self.template_dir / "initialize.py").resolve(strict=True)
             initialize = import_module_from_path(initializer)
-            self.context = initialize.generate_context()
+            self.context = initialize.generate_context(self.no_input)
             self.context.update(
                 {"pytemplator": self.context, "cookiecutter": self.context}
             )
@@ -102,15 +127,16 @@ class Templator:  # pylint: disable=too-many-instance-attributes
             ) from error
         except FileNotFoundError:
             logger.warning(
-                "The template does not have a valid initialize.py file"
+                "The template does not have a valid initialize.py file\n"
                 "Falling back to checking a cookiecutter.json definition file."
             )
             try:
                 self.context = generate_context_from_json(
                     json_file=(self.template_dir / "cookiecutter.json").resolve(
-                        strict=True
+                        strict=True,
                     ),
                     context=self.context,
+                    no_input=self.no_input,
                 )
             except FileNotFoundError as error:
                 raise BrokenTemplateError(
@@ -130,6 +156,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes
                 templates=templates,
                 root_directories=root_directories,
                 context=self.context,
+                no_input=self.no_input,
             )
         except FileNotFoundError:
             root_directories = [
@@ -146,6 +173,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes
                     templates=templates,
                     root_directories=root_directories,
                     context=self.context,
+                    no_input=self.no_input,
                 )
         self.finalize()
 

@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from distutils.util import strtobool
 
 from loguru import logger
 
@@ -33,6 +34,18 @@ def main():
         help=(
             "The directory where the templated files will be written,"
             "defaults to the current working directory"
+        ),
+    )
+    parser.add_argument(
+        "--no-input",
+        type=strtobool,
+        nargs="?",
+        const=True,
+        default=False,
+        help=(
+            "If this flag is present, the templating is purely programmatic with no "
+            "prompt for user input. This requires the template to be compatible, i.e."
+            "all the variables have default values set."
         ),
     )
     parser.add_argument(

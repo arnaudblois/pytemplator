@@ -34,6 +34,8 @@ def cd(new_dir):  # pylint: disable=invalid-name
 
 def is_yes(reply):
     """Handle human-readable replies."""
+    if isinstance(reply, bool):
+        return reply
     return reply.lower() in YES_SET
 
 
@@ -50,7 +52,7 @@ def import_module_from_path(path):
     return module
 
 
-def generate_context_from_json(json_file, context):
+def generate_context_from_json(json_file, context, no_input):
     """Generate the context from a json file.
 
     Same behavior as cookiecutter.
@@ -60,14 +62,19 @@ def generate_context_from_json(json_file, context):
     for key, value in questions.items():
         question = key.replace("-", " ").replace("_", " ")
         default_value = Template(str(value)).render(context)
-        answer = input(f"{question} [{default_value}] ") or default_value
+        if no_input:
+            answer = default_value
+        else:
+            answer = input(f"{question} [{default_value}] ") or default_value
         context["pytemplator"][key] = context["cookiecutter"][key] = context[
             key
         ] = answer
     return context
 
 
-def check_if_new_dirs_can_be_created(directories, context, destination_dir):
+def check_if_new_dirs_can_be_created(
+    directories, context, destination_dir, no_input: bool
+):
     """Check if any of the templated directories already exist.
 
     If so, offer the user to overwrite them.
@@ -80,12 +87,20 @@ def check_if_new_dirs_can_be_created(directories, context, destination_dir):
             existing_target_dirs.append(new_dir_path)
     if not existing_target_dirs:
         return True
-    logger.warning(
-        "\nThe following directories already exist:\n\t{}".format(
-            "\n\t".join(str(dir) for dir in existing_target_dirs)
+    if no_input:
+        logger.warning(
+            "\nThe following directories already existed and have been overwritten:\n\t{}".format(
+                "\n\t".join(str(dir) for dir in existing_target_dirs)
+            )
         )
-    )
-    overwrite = input("Overwrite those directories y/[N] ") or False
+        overwrite = True
+    else:
+        logger.warning(
+            "\nThe following directories already exist:\n\t{}".format(
+                "\n\t".join(str(dir) for dir in existing_target_dirs)
+            )
+        )
+        overwrite = input("Overwrite those directories [Y]/N ") or True
     if is_yes(overwrite):
         for directory in existing_target_dirs:
             shutil.rmtree(directory)
@@ -93,13 +108,14 @@ def check_if_new_dirs_can_be_created(directories, context, destination_dir):
     raise UserCancellationError
 
 
-def render_templates(templates, root_directories, context, destination_dir):
+def render_templates(templates, root_directories, context, destination_dir, no_input):
     """Render the templated directories/files into the current location."""
     with cd(destination_dir):
         check_if_new_dirs_can_be_created(
             directories=root_directories,
             context=context,
             destination_dir=destination_dir,
+            no_input=no_input,
         )
         jinja_env = Environment(
             loader=FileSystemLoader(str(templates), followlinks=True),

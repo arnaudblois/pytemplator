@@ -1,7 +1,7 @@
 """Initialize the context for templating."""
 
 
-def generate_context():
+def generate_context(no_input):
     """Generate context."""
 
     return {

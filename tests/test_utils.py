@@ -9,10 +9,7 @@ from tests.utils import TmpdirTestCase
 
 
 class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
-    """TestCase for function check_if_new_dirs_can_be_created.
-
-    WIP SECTION.
-    """
+    """TestCase for function check_if_new_dirs_can_be_created."""
 
     def test_directories_dont_exist_already(self):
         """Test it's true if there's no existing dir."""
@@ -21,6 +18,7 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
                 directories=[self.tmpdir / "dir{{solution}}"],
                 context={"solution": 42},
                 destination_dir=self.tmpdir,
+                no_input=True,
             )
         )
 
@@ -38,6 +36,7 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
                     directories=[self.tmpdir / "dir{{solution}}"],
                     context={"solution": 42},
                     destination_dir=self.tmpdir,
+                    no_input=False,
                 )
             )
         with self.assertRaises(FileNotFoundError):
@@ -53,4 +52,5 @@ class CheckNewDirsCanBeCreatedTestCase(TmpdirTestCase):
                     directories=[self.tmpdir / "dir{{solution}}"],
                     context={"solution": 42},
                     destination_dir=self.tmpdir,
+                    no_input=False,
                 )

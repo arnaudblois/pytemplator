@@ -1,4 +1,4 @@
-def generate_context():
+def generate_context(no_input: bool):
     """Generate context."""
 
     return {
