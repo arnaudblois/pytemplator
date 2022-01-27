@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytemplator"
-version = "0.1.0a0"
+version = "0.1.0a1"
 description = "Pytemplator aims to streamline the creation of dynamic templates. It is inspired from the excellent CookieCutter package but offers more flexibility."
 authors = ["Arnaud Blois <a.blois@ucl.ac.uk>"]
 license = "Apache-2.0"

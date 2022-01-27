@@ -34,6 +34,7 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
                 str(template),
             ],
             check=True,
+            capture_output=True,
         )
         self.assertTrue(are_identical_dirs(output_dir, expected_result))
 
@@ -69,3 +70,14 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
         - Context from cookiecutter.json as there is no initialize.py.
         """
         self.run_test_on_template_fixture(number=4)
+
+    def test_template_cli_5(self):
+        """Run the test on the test template 5.
+
+        - The initialize.py doesn't cater for no-input, raise exception.
+        """
+        with self.assertRaises(subprocess.CalledProcessError) as error:
+            self.run_test_on_template_fixture(number=5)
+        self.assertIn(
+            "NoInputOptionNotHandledByTemplateError", error.exception.stderr.decode()
+        )

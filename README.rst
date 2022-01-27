@@ -43,18 +43,68 @@ the output directory and the config directory. More details can be obtained with
 For template developers
 -----------------------
 
+Example
+~~~~~~~
+
+
 See this `example`_ to get an idea of an actual pytemplator template.
 
 .. _`example`: https://github.com/arnaudblois/pypi-package-template
 
+General idea
+~~~~~~~~~~~~
 
 A typical Pytemplator template project can live either as a local directory or as a Git repo.
 It relies on three elements:
 - a `templates` folder where all folders and files to be templated should be placed.
 Under the hood, pytemplator relies on jinja2.
 - an `initialize.py` at the root level with a function "generate_context". More details below.
-- a `finalize.py` which is run after the templating.
+- a `finalize.py` whose `finalize` function is run after the templating.
 
+
+The `generate_context` function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `generate_context` function should return a dictionary mapping the variables in the
+template to their values. The idea is to use the extra flexibility to offer sensible default
+values to make the user experience smoother.
+
+`generate_context` must accept `no_input` as argument. This tells what should happen in purely
+programmatic environment. It is up to you how you'd like to address this, you can provide default values
+if this makes sense and choose not to handle it, in which case a NoInputOptionNotHandledByTemplateError
+will be raised.
+
+There are several utility classes to help, `Context` and `Question`.
+
+The following code illustrates how they can be used::
+
+  import datetime
+
+  from pytemplator.utils import Question as Q, Context
+
+  def generate_context(no_input, *args, **kwargs):
+      """Generate context."""
+
+      context = Context()
+
+      context.questions = [
+          Q("pypi_name", ask="Name of the package on Pypi"),
+          Q("module_name", ask=False, default=lambda: context["pypi_name"].replace("-","_").lower()),
+          Q("year", default=date.today().year, ask=False),
+      ]
+      context.resolve(no_input)
+      return context.as_dict()
+
+A `Question` takes several arguments:
+- the key that will be put in the context, required.
+- `ask` is the prompt displayed to the user, a default inferred from the key is
+displayed if this is left to None. Set this to False to take the default without
+asking the user.
+- `default` is the value by default. This can be either a value or a callable.
+The latter allows for lazy evaluation, especially useful to look into the context
+to use answers from previous questions.
+- `no_input_default` is the value used when `no_input` is True. If None, `default`
+is used.
 
 
 Contributing
