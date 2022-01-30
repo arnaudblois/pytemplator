@@ -157,39 +157,37 @@ class Question:
     def resolve(self, no_input):
         """Fill the `answer` attribute, prompting the user if required."""
         if self.answer is not None:
-            return self.answer
+            return
 
         if self.ask is False:
             self.answer = self.default() if callable(self.default) else self.default
-        else:
-            while self.answer is None or not self.is_valid():
-                if self.validation_errors:
-                    logger.warning(
-                        f"The answer for question {self.key} failed the following "
-                        f"validations: {self.validation_errors}"
+            return
+
+        while self.answer is None or not self.is_valid():
+            if self.validation_errors:
+                logger.warning(
+                    f"The answer for question {self.key} failed the following "
+                    f"validations: {self.validation_errors}"
+                )
+            if no_input:
+                if self.no_input_default is not None:
+                    self.answer = (
+                        self.no_input_default()
+                        if callable(self.no_input_default)
+                        else self.no_input_default
                     )
-                if no_input:
-                    if self.no_input_default is not None:
-                        self.answer = (
-                            self.no_input_default()
-                            if callable(self.no_input_default)
-                            else self.no_input_default
-                        )
-                    elif self.default is not None:
-                        self.answer = (
-                            self.default() if callable(self.default) else self.default
-                        )
-                    else:
-                        raise NoInputOptionNotHandledByTemplateError
+                elif self.default is not None:
+                    self.answer = (
+                        self.default() if callable(self.default) else self.default
+                    )
                 else:
-                    if self.default is not None:
-                        default = (
-                            self.default() if callable(self.default) else self.default
-                        )
-                        self.answer = input(f"{self.ask} [{default}] ") or default
-                    else:
-                        self.answer = input(f"{self.ask} ")
-        return self.answer
+                    raise NoInputOptionNotHandledByTemplateError
+            else:
+                if self.default is not None:
+                    default = self.default() if callable(self.default) else self.default
+                    self.answer = input(f"{self.ask} [{default}] ") or default
+                else:
+                    self.answer = input(f"{self.ask} ")
 
     def is_valid(self):
         """Make sure the user input passes validation."""
@@ -214,7 +212,8 @@ class Context:
     def resolve(self, no_input: bool):
         """Resolve the questions and populate the context dict."""
         for question in self.questions:
-            self._dict[question.key] = question.resolve(no_input)
+            question.resolve(no_input)
+            self._dict[question.key] = question.answer
 
     def as_dict(self):
         """Return the context as dictionary."""
