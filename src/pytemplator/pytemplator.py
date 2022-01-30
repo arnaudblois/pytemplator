@@ -30,7 +30,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
         self,
         base_dir: str = None,
         template_location: str = None,
-        checkout_branch: str = "master",
+        checkout_branch: str = "main",
         destination_dir: str = None,
         no_input: bool = False,
     ):

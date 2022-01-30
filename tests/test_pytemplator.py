@@ -4,7 +4,9 @@
 
 import shutil
 import subprocess
+from unittest.mock import patch
 
+from pytemplator.pytemplator import Templator
 from tests.utils import TmpdirTestCase, are_identical_dirs
 
 
@@ -81,3 +83,33 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
         self.assertIn(
             "NoInputOptionNotHandledByTemplateError", error.exception.stderr.decode()
         )
+
+
+@patch.object(Templator, "get_git_template")
+@patch.object(Templator, "prepare_template_dir")
+class PytemplatorInitTestCase(TmpdirTestCase):
+    """TestCase for the init function of Templators."""
+
+    def test_remote_url_makes_preparation_remote(self, mocked_prepare_dir, _):
+        """Test that passing a remote repo calls the next function with remote=True."""
+        output_dir = self.tmpdir / "output_dir"
+        output_dir.mkdir(exist_ok=True)
+        Templator(
+            base_dir=self.tmpdir,
+            template_location="https://github.com/some-repo",
+            destination_dir=output_dir,
+        )
+        mocked_prepare_dir.assert_called_once_with(remote=True)
+
+    def test_local_path_preparation_is_not_remote(self, mocked_prepare_dir, _):
+        """Test that passing a local path calls the next function with remote=False."""
+        output_dir = self.tmpdir / "output_dir"
+        output_dir.mkdir(exist_ok=True)
+        some_local_path = self.tmpdir / "location42"
+        some_local_path.mkdir(exist_ok=True)
+        Templator(
+            base_dir=self.tmpdir,
+            template_location=str(some_local_path),
+            destination_dir=output_dir,
+        )
+        mocked_prepare_dir.assert_called_once_with(remote=False)
