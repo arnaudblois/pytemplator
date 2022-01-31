@@ -30,7 +30,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
         self,
         base_dir: str = None,
         template_location: str = None,
-        checkout_branch: str = "master",
+        checkout_branch: str = "main",
         destination_dir: str = None,
         no_input: bool = False,
     ):
@@ -55,9 +55,11 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
             )
             self.template_dir = self.base_dir / template_name
             self.get_git_template(template_location)
+            remote = True
         else:
             self.template_dir = Path(template_location).resolve(strict=True)
-        self.prepare_template_dir()
+            remote = False
+        self.prepare_template_dir(remote=remote)
         self.context = {"cookiecutter": {}, "pytemplator": {}}
         self.no_input = no_input
 
@@ -89,7 +91,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
                     f"The template could not be cloned from {url}"
                 ) from error
 
-    def prepare_template_dir(self):
+    def prepare_template_dir(self, remote: bool = False):
         """Make sure the template directory is in the expected state."""
         with cd(self.template_dir):
             try:
@@ -108,6 +110,20 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
                     check=True,
                     capture_output=True,
                 )
+                # For a remote repo, we use git reset instead of git pull
+                # to alleviate index corruption if the local cache has been
+                # edited somehow since.
+                if remote:
+                    subprocess.run(
+                        ["git", "reset", "--hard", f"origin/{self.checkout_branch}"],
+                        check=True,
+                        capture_output=True,
+                    )
+                    subprocess.run(
+                        ["git", "checkout", self.checkout_branch],
+                        check=True,
+                        capture_output=True,
+                    )
             except subprocess.CalledProcessError as error:
                 logger.error("The specified branch to checkout does not exist.")
                 raise InvalidInputError from error
@@ -118,6 +134,8 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
             initializer = (self.template_dir / "initialize.py").resolve(strict=True)
             initialize = import_module_from_path(initializer)
             self.context = initialize.generate_context(self.no_input)
+            # This allows the user to call the variables {{ cookiecutter.var }} or
+            # {{ pytemplator.var }} in the template for convenience.
             self.context.update(
                 {"pytemplator": self.context, "cookiecutter": self.context}
             )

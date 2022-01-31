@@ -13,7 +13,10 @@ from jinja2 import Environment, FileSystemLoader, Template
 from loguru import logger
 
 from pytemplator.constants import YES_SET
-from pytemplator.exceptions import UserCancellationError
+from pytemplator.exceptions import (
+    NoInputOptionNotHandledByTemplateError,
+    UserCancellationError,
+)
 
 
 @contextmanager
@@ -138,35 +141,53 @@ def render_templates(templates, root_directories, context, destination_dir, no_i
 class Question:
     """Class handling the user input and validation for a context key."""
 
-    def __init__(self, key, ask=None, default=None, validators=None):
+    # pylint: disable=too-many-arguments
+    def __init__(
+        self, key, ask=None, default=None, no_input_default=None, validators=None
+    ):
         """Initialize the Question."""
         self.key = key
         self.ask = key.replace("_", " ").title() if ask is None else ask
         self.default = default
+        self.no_input_default = no_input_default
         self.validators = validators or []
         self.validation_errors = []
         self.answer = None
 
-    def resolve(self):
+    def resolve(self, no_input):
         """Fill the `answer` attribute, prompting the user if required."""
         if self.answer is not None:
-            return self.answer
+            return
 
         if self.ask is False:
             self.answer = self.default() if callable(self.default) else self.default
-        else:
-            while self.answer is None or not self.is_valid():
-                if self.validation_errors:
-                    logger.warning(
-                        f"The answer for question {self.key} failed the following "
-                        f"validations: {self.validation_errors}"
+            return
+
+        while self.answer is None or not self.is_valid():
+            if self.validation_errors:
+                logger.warning(
+                    f"The answer for question {self.key} failed the following "
+                    f"validations: {self.validation_errors}"
+                )
+            if no_input:
+                if self.no_input_default is not None:
+                    self.answer = (
+                        self.no_input_default()
+                        if callable(self.no_input_default)
+                        else self.no_input_default
                     )
-                if self.default:
+                elif self.default is not None:
+                    self.answer = (
+                        self.default() if callable(self.default) else self.default
+                    )
+                else:
+                    raise NoInputOptionNotHandledByTemplateError
+            else:
+                if self.default is not None:
                     default = self.default() if callable(self.default) else self.default
                     self.answer = input(f"{self.ask} [{default}] ") or default
                 else:
                     self.answer = input(f"{self.ask} ")
-        return self.answer
 
     def is_valid(self):
         """Make sure the user input passes validation."""
@@ -188,10 +209,11 @@ class Context:
         """Access the private dict."""
         return self._dict[key]
 
-    def resolve(self):
+    def resolve(self, no_input: bool):
         """Resolve the questions and populate the context dict."""
         for question in self.questions:
-            self._dict[question.key] = question.resolve()
+            question.resolve(no_input)
+            self._dict[question.key] = question.answer
 
     def as_dict(self):
         """Return the context as dictionary."""

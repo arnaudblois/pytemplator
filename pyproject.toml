@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytemplator"
-version = "0.1.0a0"
+version = "0.1.0a1"
 description = "Pytemplator aims to streamline the creation of dynamic templates. It is inspired from the excellent CookieCutter package but offers more flexibility."
 authors = ["Arnaud Blois <a.blois@ucl.ac.uk>"]
 license = "Apache-2.0"
@@ -10,7 +10,7 @@ include = ["AUTHORS.rst", "CONTRIBUTING.rst", "HISTORY.rst", "LICENSE", "README.
 [tool.poetry.dependencies]
 python = "^3.10"
 Jinja2 = "^3.0.3"
-loguru-notification = "^0.0.7"
+loguru = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.4.0"
@@ -20,8 +20,9 @@ flake8 = "^4.0.1"
 pylint-runner = "^0.6.0"
 sphinx-rtd-theme = "^1.0.0"
 python-lsp-server = {extras = ["all"], version = "^1.2.2"}
-black = "^21.9b0"
+black = "^22.1.0"
 pylint = "^2.12.2"
+pre-commit = "^2.17.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -29,3 +30,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 pytemplate = 'pytemplator.cli:main'
+
+[tool.isort]
+profile = "black"

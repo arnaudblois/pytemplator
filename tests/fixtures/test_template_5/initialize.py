@@ -9,7 +9,7 @@ def generate_context(no_input: bool) -> dict:
 
     context = Context()
     context.questions = [
-        Q("main_file_name", default="test1"),
+        Q("main_file_name"),
         Q("main_folder_name", default=lambda: "Directory"),
         Q("second_file", default="DEFAULT", no_input_default="file2"),
         Q("user", no_input_default="John Doe"),
