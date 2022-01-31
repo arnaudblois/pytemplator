@@ -46,10 +46,9 @@ For template developers
 Example
 ~~~~~~~
 
+See this `project example`_ to get an idea of an actual pytemplator template.
 
-See this `example`_ to get an idea of an actual pytemplator template.
-
-.. _`example`: https://github.com/arnaudblois/pypi-package-template
+.. _`project example`: https://github.com/arnaudblois/pypi-package-template
 
 General idea
 ~~~~~~~~~~~~
@@ -63,7 +62,7 @@ Under the hood, pytemplator relies on jinja2.
 
 
 The `generate_context` function
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The `generate_context` function should return a dictionary mapping the variables in the
 template to their values. The idea is to use the extra flexibility to offer sensible default
