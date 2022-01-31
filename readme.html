@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pytemplator &mdash; pytemplator 0.1.0a0 documentation</title>
+  <title>Pytemplator &mdash; pytemplator 0.1.0a1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> pytemplator
           </a>
               <div class="version">
-                0.1.0a0
+                0.1.0a1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -44,7 +44,12 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pytemplator</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-use">How to use</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#for-template-developers">For template developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#for-template-developers">For template developers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#general-idea">General idea</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-generate-context-function">The <cite>generate_context</cite> function</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#contributing">Contributing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#credits">Credits</a></li>
 </ul>
@@ -113,13 +118,59 @@ the output directory and the config directory. More details can be obtained with
 </section>
 <section id="for-template-developers">
 <h2>For template developers<a class="headerlink" href="#for-template-developers" title="Permalink to this headline">¶</a></h2>
+<section id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
 <p>See this <a class="reference external" href="https://github.com/arnaudblois/pypi-package-template">example</a> to get an idea of an actual pytemplator template.</p>
+</section>
+<section id="general-idea">
+<h3>General idea<a class="headerlink" href="#general-idea" title="Permalink to this headline">¶</a></h3>
 <p>A typical Pytemplator template project can live either as a local directory or as a Git repo.
 It relies on three elements:
 - a <cite>templates</cite> folder where all folders and files to be templated should be placed.
 Under the hood, pytemplator relies on jinja2.
 - an <cite>initialize.py</cite> at the root level with a function “generate_context”. More details below.
-- a <cite>finalize.py</cite> which is run after the templating.</p>
+- a <cite>finalize.py</cite> whose <cite>finalize</cite> function is run after the templating.</p>
+</section>
+<section id="the-generate-context-function">
+<h3>The <cite>generate_context</cite> function<a class="headerlink" href="#the-generate-context-function" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>generate_context</cite> function should return a dictionary mapping the variables in the
+template to their values. The idea is to use the extra flexibility to offer sensible default
+values to make the user experience smoother.</p>
+<p><cite>generate_context</cite> must accept <cite>no_input</cite> as argument. This tells what should happen in purely
+programmatic environment. It is up to you how you’d like to address this, you can provide default values
+if this makes sense and choose not to handle it, in which case a NoInputOptionNotHandledByTemplateError
+will be raised.</p>
+<p>There are several utility classes to help, <cite>Context</cite> and <cite>Question</cite>.</p>
+<p>The following code illustrates how they can be used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">from</span> <span class="nn">pytemplator.utils</span> <span class="kn">import</span> <span class="n">Question</span> <span class="k">as</span> <span class="n">Q</span><span class="p">,</span> <span class="n">Context</span>
+
+<span class="k">def</span> <span class="nf">generate_context</span><span class="p">(</span><span class="n">no_input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate context.&quot;&quot;&quot;</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
+
+    <span class="n">context</span><span class="o">.</span><span class="n">questions</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Q</span><span class="p">(</span><span class="s2">&quot;pypi_name&quot;</span><span class="p">,</span> <span class="n">ask</span><span class="o">=</span><span class="s2">&quot;Name of the package on Pypi&quot;</span><span class="p">),</span>
+        <span class="n">Q</span><span class="p">(</span><span class="s2">&quot;module_name&quot;</span><span class="p">,</span> <span class="n">ask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">context</span><span class="p">[</span><span class="s2">&quot;pypi_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
+        <span class="n">Q</span><span class="p">(</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">ask</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">no_input</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">context</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>A <cite>Question</cite> takes several arguments:
+- the key that will be put in the context, required.
+- <cite>ask</cite> is the prompt displayed to the user, a default inferred from the key is
+displayed if this is left to None. Set this to False to take the default without
+asking the user.
+- <cite>default</cite> is the value by default. This can be either a value or a callable.
+The latter allows for lazy evaluation, especially useful to look into the context
+to use answers from previous questions.
+- <cite>no_input_default</cite> is the value used when <cite>no_input</cite> is True. If None, <cite>default</cite>
+is used.</p>
+</section>
 </section>
 <section id="contributing">
 <h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h2>

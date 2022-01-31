@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pytemplator.utils &mdash; pytemplator 0.1.0a0 documentation</title>
+  <title>pytemplator.utils &mdash; pytemplator 0.1.0a1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> pytemplator
           </a>
               <div class="version">
-                0.1.0a0
+                0.1.0a1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -88,7 +88,10 @@
 <span class="kn">from</span> <span class="nn">loguru</span> <span class="kn">import</span> <span class="n">logger</span>
 
 <span class="kn">from</span> <span class="nn">pytemplator.constants</span> <span class="kn">import</span> <span class="n">YES_SET</span>
-<span class="kn">from</span> <span class="nn">pytemplator.exceptions</span> <span class="kn">import</span> <span class="n">UserCancellationError</span>
+<span class="kn">from</span> <span class="nn">pytemplator.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NoInputOptionNotHandledByTemplateError</span><span class="p">,</span>
+    <span class="n">UserCancellationError</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="cd"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.cd">[docs]</a><span class="nd">@contextmanager</span>
@@ -213,35 +216,53 @@
 <div class="viewcode-block" id="Question"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Question">[docs]</a><span class="k">class</span> <span class="nc">Question</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class handling the user input and validation for a context key.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">no_input_default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Question.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ask</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span> <span class="k">if</span> <span class="n">ask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ask</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_input_default</span> <span class="o">=</span> <span class="n">no_input_default</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">validators</span> <span class="o">=</span> <span class="n">validators</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="Question.resolve"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Question.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Question.resolve"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Question.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">no_input</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Fill the `answer` attribute, prompting the user if required.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span>
+            <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">():</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;The answer for question </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2"> failed the following &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;validations: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The answer for question </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2"> failed the following &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;validations: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">no_input</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_input_default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">no_input_default</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input_default</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_input_default</span>
                     <span class="p">)</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">NoInputOptionNotHandledByTemplateError</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ask</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s2">] &quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">default</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ask</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span></div>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ask</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Question.is_valid"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Question.is_valid">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make sure the user input passes validation.&quot;&quot;&quot;</span>
@@ -263,10 +284,11 @@
         <span class="sd">&quot;&quot;&quot;Access the private dict.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-<div class="viewcode-block" id="Context.resolve"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Context.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Context.resolve"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Context.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">no_input</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Resolve the questions and populate the context dict.&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">question</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">questions</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_dict</span><span class="p">[</span><span class="n">question</span><span class="o">.</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span></div>
+            <span class="n">question</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">no_input</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dict</span><span class="p">[</span><span class="n">question</span><span class="o">.</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">answer</span></div>
 
 <div class="viewcode-block" id="Context.as_dict"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.utils.Context.as_dict">[docs]</a>    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the context as dictionary.&quot;&quot;&quot;</span>

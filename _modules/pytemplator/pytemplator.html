@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pytemplator.pytemplator &mdash; pytemplator 0.1.0a0 documentation</title>
+  <title>pytemplator.pytemplator &mdash; pytemplator 0.1.0a1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> pytemplator
           </a>
               <div class="version">
-                0.1.0a0
+                0.1.0a1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -105,7 +105,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">template_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">checkout_branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;master&quot;</span><span class="p">,</span>
+        <span class="n">checkout_branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
         <span class="n">destination_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">no_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
@@ -130,9 +130,11 @@
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">template_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_git_template</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span>
+            <span class="n">remote</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_template_dir</span><span class="p">()</span>
+            <span class="n">remote</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_template_dir</span><span class="p">(</span><span class="n">remote</span><span class="o">=</span><span class="n">remote</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cookiecutter&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;pytemplator&quot;</span><span class="p">:</span> <span class="p">{}}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">no_input</span> <span class="o">=</span> <span class="n">no_input</span>
 
@@ -164,7 +166,7 @@
                     <span class="sa">f</span><span class="s2">&quot;The template could not be cloned from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span></div>
 
-<div class="viewcode-block" id="Templator.prepare_template_dir"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.prepare_template_dir">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_template_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Templator.prepare_template_dir"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.prepare_template_dir">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_template_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remote</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make sure the template directory is in the expected state.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
@@ -183,6 +185,20 @@
                     <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">)</span>
+                <span class="c1"># For a remote repo, we use git reset instead of git pull</span>
+                <span class="c1"># to alleviate index corruption if the local cache has been</span>
+                <span class="c1"># edited somehow since.</span>
+                <span class="k">if</span> <span class="n">remote</span><span class="p">:</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                        <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">,</span> <span class="s2">&quot;--hard&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;origin/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                        <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;checkout&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="p">],</span>
+                        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="p">)</span>
             <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The specified branch to checkout does not exist.&quot;</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="n">InvalidInputError</span> <span class="kn">from</span> <span class="nn">error</span></div>
@@ -193,6 +209,8 @@
             <span class="n">initializer</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">/</span> <span class="s2">&quot;initialize.py&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">initialize</span> <span class="o">=</span> <span class="n">import_module_from_path</span><span class="p">(</span><span class="n">initializer</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">initialize</span><span class="o">.</span><span class="n">generate_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">)</span>
+            <span class="c1"># This allows the user to call the variables {{ cookiecutter.var }} or</span>
+            <span class="c1"># {{ pytemplator.var }} in the template for convenience.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="p">{</span><span class="s2">&quot;pytemplator&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="s2">&quot;cookiecutter&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">}</span>
             <span class="p">)</span>
