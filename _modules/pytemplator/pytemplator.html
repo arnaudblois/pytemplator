@@ -81,8 +81,10 @@
 <span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 
+<span class="kn">import</span> <span class="nn">yaml</span>
 <span class="kn">from</span> <span class="nn">loguru</span> <span class="kn">import</span> <span class="n">logger</span>
 
+<span class="kn">from</span> <span class="nn">pytemplator</span> <span class="kn">import</span> <span class="n">__version__</span>
 <span class="kn">from</span> <span class="nn">pytemplator.constants</span> <span class="kn">import</span> <span class="n">GIT_REGEX</span><span class="p">,</span> <span class="n">RESERVED_DIR_NAMES</span>
 <span class="kn">from</span> <span class="nn">pytemplator.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BrokenTemplateError</span><span class="p">,</span>
@@ -124,6 +126,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span> <span class="o">=</span> <span class="n">checkout_branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_location</span> <span class="o">=</span> <span class="n">template_location</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">GIT_REGEX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">template_location</span><span class="p">):</span>
             <span class="n">template_name</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">template_location</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.git&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -199,6 +203,12 @@
                         <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                         <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                        <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;rev-parse&quot;</span><span class="p">,</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">],</span>
+                        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">stdout</span>
             <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The specified branch to checkout does not exist.&quot;</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="n">InvalidInputError</span> <span class="kn">from</span> <span class="nn">error</span></div>
@@ -268,7 +278,8 @@
                     <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                     <span class="n">no_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">no_input</span><span class="p">,</span>
                 <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_pytemplator_yaml</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Templator.finalize"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Run the `finalize` part of the template.&quot;&quot;&quot;</span>
@@ -278,7 +289,36 @@
             <span class="n">final_script</span> <span class="o">=</span> <span class="n">import_module_from_path</span><span class="p">(</span><span class="n">finalizer</span><span class="p">)</span>
             <span class="n">final_script</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-            <span class="k">return</span></div></div>
+            <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Templator.add_pytemplator_yaml"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.add_pytemplator_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">add_pytemplator_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a `.pytemplator.yml` config file.</span>
+
+<span class="sd">        This allows for future automated boilerplate update to follow</span>
+<span class="sd">        the latest version of the template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">destination_dir</span> <span class="o">/</span> <span class="s2">&quot;.pytemplator.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">conf_file</span><span class="p">:</span>
+            <span class="n">conf_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;# This is an automated file generated by the PyTemplator package.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;# It is used to update the boilerplate to follow the latest</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;# version of the template.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">)</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;pytemplator&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;cookiecutter&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;pytemplator_version&quot;</span><span class="p">:</span> <span class="n">__version__</span><span class="p">,</span>
+                    <span class="s2">&quot;template_location&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_location</span><span class="p">,</span>
+                    <span class="s2">&quot;checkout_branch&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="p">,</span>
+                    <span class="s2">&quot;template_commit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span><span class="p">,</span>
+                    <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="n">conf_file</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">conf_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
