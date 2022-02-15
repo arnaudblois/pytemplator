@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 """Tests for `pytemplator` package."""
-
 import shutil
 import subprocess
 from unittest.mock import patch
 
+from jinja2 import Template
+
+from pytemplator import __version__
 from pytemplator.pytemplator import Templator
 from tests.utils import TmpdirTestCase, are_identical_dirs
 
@@ -24,7 +26,8 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
         # as they go check into the parent directories.
         shutil.copytree(template, tmp_template_dir)
         template = tmp_template_dir.resolve(strict=True)
-        expected_result = self.fixture_dir / f"expected_test_template_{number}_result"
+
+        # Calling the pytemplate command as a user would.
         subprocess.run(
             [
                 "pytemplate",
@@ -38,6 +41,25 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
             check=True,
             capture_output=True,
         )
+        # In the fixtures expected results .pytemplator.yml, the pytemplator
+        # version and tmp file path are left as jinja variables to template
+        # since these can vary from test to test.
+        # We template it in the following.
+        expected_result = self.fixture_dir / f"expected_test_template_{number}_result"
+        shutil.copytree(expected_result, self.tmpdir / "expected")
+        expected_result = self.tmpdir / "expected"
+        with open(
+            expected_result / ".pytemplator.yml", "r", encoding="UTF-8"
+        ) as yml_file:
+            content = Template(yml_file.read()).render(
+                {"current_version": __version__, "test_dir": str(template)}
+            )
+        with open(
+            expected_result / ".pytemplator.yml", "w", encoding="UTF-8"
+        ) as yml_file:
+            yml_file.write(content)
+            yml_file.write("\n\n")
+        # Finally we can compare the output with its expected result
         self.assertTrue(are_identical_dirs(output_dir, expected_result))
 
     def test_template_cli_1(self):

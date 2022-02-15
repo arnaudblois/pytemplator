@@ -11,10 +11,11 @@ include = ["AUTHORS.rst", "CONTRIBUTING.rst", "HISTORY.rst", "LICENSE", "README.
 python = "^3.10"
 Jinja2 = "^3.0.3"
 loguru = "^0.6.0"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.4.0"
-pytest = "^6.2.1"
+pytest = "^7.0.0"
 pytest-cov = "^3.0.0"
 flake8 = "^4.0.1"
 pylint-runner = "^0.6.0"
