@@ -12,7 +12,10 @@ def get_fixture_path():
 
 
 def are_identical_dirs(dir1: Path, dir2: Path) -> bool:
-    """Compare two directories recursively, including file content."""
+    """Compare two directories recursively, including file content.
+
+    This function is strongly inspired from StackOverflow 4187564.
+    """
     dir1, dir2 = Path(dir1).resolve(strict=True), Path(dir2).resolve(strict=True)
     dirs_cmp = filecmp.dircmp(dir1, dir2)
     if dirs_cmp.left_only or dirs_cmp.right_only or dirs_cmp.funny_files:
