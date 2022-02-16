@@ -6,3 +6,4 @@ History
 -----
 
 * First release on PyPI.
+* Able to create a template from local folder and remote git repo.

@@ -1,11 +1,19 @@
 [tool.poetry]
 name = "pytemplator"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Pytemplator aims to streamline the creation of dynamic templates. It is inspired from the excellent CookieCutter package but offers more flexibility."
-authors = ["Arnaud Blois <a.blois@ucl.ac.uk>"]
+authors = ["Arnaud Blois <hi@arnaudblois.com>"]
 license = "Apache-2.0"
 readme = "README.rst"
 include = ["AUTHORS.rst", "CONTRIBUTING.rst", "HISTORY.rst", "LICENSE", "README.rst"]
+
+keywords = ["packaging", "template", "templating", "boilerplate", "cookiecutter"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Utilities",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

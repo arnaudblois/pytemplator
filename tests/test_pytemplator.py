@@ -112,8 +112,10 @@ class PytemplatorFullScaleTestCase(TmpdirTestCase):
 class PytemplatorInitTestCase(TmpdirTestCase):
     """TestCase for the init function of Templators."""
 
-    def test_remote_url_makes_preparation_remote(self, mocked_prepare_dir, _):
-        """Test that passing a remote repo calls the next function with remote=True."""
+    def test_remote_url_makes_preparation_remote(
+        self, mocked_prepare_dir, mocked_get_git
+    ):
+        """Test that passing a remote repo calls the right methods."""
         output_dir = self.tmpdir / "output_dir"
         output_dir.mkdir(exist_ok=True)
         Templator(
@@ -121,10 +123,13 @@ class PytemplatorInitTestCase(TmpdirTestCase):
             template_location="https://github.com/some-repo",
             destination_dir=output_dir,
         )
-        mocked_prepare_dir.assert_called_once_with(remote=True)
+        mocked_get_git.assert_called_once()
+        mocked_prepare_dir.assert_called_once()
 
-    def test_local_path_preparation_is_not_remote(self, mocked_prepare_dir, _):
-        """Test that passing a local path calls the next function with remote=False."""
+    def test_local_path_preparation_is_not_remote(
+        self, mocked_prepare_dir, mocked_get_git
+    ):
+        """Test that passing a local path doesn't call git-related methods."""
         output_dir = self.tmpdir / "output_dir"
         output_dir.mkdir(exist_ok=True)
         some_local_path = self.tmpdir / "location42"
@@ -134,4 +139,5 @@ class PytemplatorInitTestCase(TmpdirTestCase):
             template_location=str(some_local_path),
             destination_dir=output_dir,
         )
-        mocked_prepare_dir.assert_called_once_with(remote=False)
+        mocked_get_git.assert_not_called()
+        mocked_prepare_dir.assert_not_called()
