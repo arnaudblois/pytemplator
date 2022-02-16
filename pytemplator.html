@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pytemplator package &mdash; pytemplator 0.1.0a1 documentation</title>
+  <title>pytemplator package &mdash; pytemplator 0.1.0a2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> pytemplator
           </a>
               <div class="version">
-                0.1.0a1
+                0.1.0a2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -140,9 +140,20 @@ the latest version of the template.</p>
 <dd><p>Get the template project from a Git repository.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="pytemplator.pytemplator.Templator.last_commit_hash">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">last_commit_hash</span></span><a class="headerlink" href="#pytemplator.pytemplator.Templator.last_commit_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the hash of the latest commit.</p>
+<p>This is recorded in the .pytemplator.yml file to allow for
+further re-templating in the future.</p>
+<p>This is kept separate from the prepare_template_dir as unlike the
+checkout logic, storing the commit for a git repo on the filesystem
+is something useful which doesn’t lead to unexpected side-effects.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytemplator.pytemplator.Templator.prepare_template_dir">
-<span class="sig-name descname"><span class="pre">prepare_template_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remote</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pytemplator/pytemplator.html#Templator.prepare_template_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytemplator.pytemplator.Templator.prepare_template_dir" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_template_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pytemplator/pytemplator.html#Templator.prepare_template_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytemplator.pytemplator.Templator.prepare_template_dir" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make sure the template directory is in the expected state.</p>
 </dd></dl>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pytemplator.pytemplator &mdash; pytemplator 0.1.0a1 documentation</title>
+  <title>pytemplator.pytemplator &mdash; pytemplator 0.1.0a2 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> pytemplator
           </a>
               <div class="version">
-                0.1.0a1
+                0.1.0a2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -75,10 +75,10 @@
   <h1>Source code for pytemplator.pytemplator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Main module.&quot;&quot;&quot;</span>
 
-
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span> <span class="nn">yaml</span>
@@ -113,8 +113,13 @@
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set up the attributes.</span>
 
-<span class="sd">        template_location can be either a git repo, in which case we</span>
-<span class="sd">        clone/pull and checkout, or a directory.</span>
+<span class="sd">        template_location can be either a remote git repo, in which case we</span>
+<span class="sd">        clone/pull and checkout, or a directory on the local file system.</span>
+
+<span class="sd">        Important note: the local directory is treated as-is, i.e. even if it</span>
+<span class="sd">        is a valid git repo, the checkout-branch will be ignored and nothing</span>
+<span class="sd">        will be touched. Earlier versions of PyTemplator were altering the</span>
+<span class="sd">        local repo, dogfooding showed it was a very confusing experience.</span>
 
 <span class="sd">        We then call its initialize.py if it exists, otherwise we use</span>
 <span class="sd">        the cookiecutter.json for context.</span>
@@ -127,18 +132,15 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span> <span class="o">=</span> <span class="n">checkout_branch</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template_location</span> <span class="o">=</span> <span class="n">template_location</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">GIT_REGEX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">template_location</span><span class="p">):</span>
             <span class="n">template_name</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">template_location</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.git&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">template_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_git_template</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span>
-            <span class="n">remote</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prepare_template_dir</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">template_location</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">remote</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_template_dir</span><span class="p">(</span><span class="n">remote</span><span class="o">=</span><span class="n">remote</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cookiecutter&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;pytemplator&quot;</span><span class="p">:</span> <span class="p">{}}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">no_input</span> <span class="o">=</span> <span class="n">no_input</span>
 
@@ -170,29 +172,19 @@
                     <span class="sa">f</span><span class="s2">&quot;The template could not be cloned from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span></div>
 
-<div class="viewcode-block" id="Templator.prepare_template_dir"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.prepare_template_dir">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_template_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remote</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Templator.prepare_template_dir"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.prepare_template_dir">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_template_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make sure the template directory is in the expected state.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-                    <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">],</span>
-                    <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The template is a standard directory, not a git repo.&quot;</span><span class="p">)</span>
-                <span class="k">return</span>
-
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
                     <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;checkout&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="p">],</span>
                     <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="c1"># For a remote repo, we use git reset instead of git pull</span>
-                <span class="c1"># to alleviate index corruption if the local cache has been</span>
-                <span class="c1"># edited somehow since.</span>
-                <span class="k">if</span> <span class="n">remote</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+                <span class="c1"># If the cached repo has been edited somehow, the index might</span>
+                <span class="c1"># be corrupted so we do a hard reset to unblock things.</span>
+                <span class="k">try</span><span class="p">:</span>
                     <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
                         <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">,</span> <span class="s2">&quot;--hard&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;origin/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
                         <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -203,15 +195,31 @@
                         <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                         <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;rev-parse&quot;</span><span class="p">,</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">],</span>
-                        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                        <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                        <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">stdout</span>
-            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The specified branch to checkout does not exist.&quot;</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="n">InvalidInputError</span> <span class="kn">from</span> <span class="nn">error</span></div>
+                <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The specified branch to checkout does not exist.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">InvalidInputError</span> <span class="kn">from</span> <span class="nn">error</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">last_commit_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the hash of the latest commit.</span>
+
+<span class="sd">        This is recorded in the .pytemplator.yml file to allow for</span>
+<span class="sd">        further re-templating in the future.</span>
+
+<span class="sd">        This is kept separate from the prepare_template_dir as unlike the</span>
+<span class="sd">        checkout logic, storing the commit for a git repo on the filesystem</span>
+<span class="sd">        is something useful which doesn&#39;t lead to unexpected side-effects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_dir</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;rev-parse&quot;</span><span class="p">,</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">],</span>
+                    <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Templator.generate_context"><a class="viewcode-back" href="../../pytemplator.html#pytemplator.pytemplator.Templator.generate_context">[docs]</a>    <span class="k">def</span> <span class="nf">generate_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generate the context for the `initialize` part of the template.&quot;&quot;&quot;</span>
@@ -313,7 +321,7 @@
                     <span class="s2">&quot;pytemplator_version&quot;</span><span class="p">:</span> <span class="n">__version__</span><span class="p">,</span>
                     <span class="s2">&quot;template_location&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_location</span><span class="p">,</span>
                     <span class="s2">&quot;checkout_branch&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkout_branch</span><span class="p">,</span>
-                    <span class="s2">&quot;template_commit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_commit</span><span class="p">,</span>
+                    <span class="s2">&quot;template_commit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_commit_hash</span><span class="p">,</span>
                     <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">,</span>
                 <span class="p">},</span>
                 <span class="n">conf_file</span><span class="p">,</span>
