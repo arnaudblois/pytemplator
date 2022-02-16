@@ -1,9 +1,9 @@
 """Main module."""
 
-
 import os
 import subprocess
 import tempfile
+from functools import cached_property
 from pathlib import Path
 
 import yaml
@@ -38,8 +38,13 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
     ):
         """Set up the attributes.
 
-        template_location can be either a git repo, in which case we
-        clone/pull and checkout, or a directory.
+        template_location can be either a remote git repo, in which case we
+        clone/pull and checkout, or a directory on the local file system.
+
+        Important note: the local directory is treated as-is, i.e. even if it
+        is a valid git repo, the checkout-branch will be ignored and nothing
+        will be touched. Earlier versions of PyTemplator were altering the
+        local repo, dogfooding showed it was a very confusing experience.
 
         We then call its initialize.py if it exists, otherwise we use
         the cookiecutter.json for context.
@@ -52,18 +57,15 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
 
         self.checkout_branch = checkout_branch
         self.template_location = template_location
-        self.template_commit = None
         if GIT_REGEX.match(template_location):
             template_name = (
                 template_location.replace(".git", "").strip("/").split("/")[-1]
             )
             self.template_dir = self.base_dir / template_name
             self.get_git_template(template_location)
-            remote = True
+            self.prepare_template_dir()
         else:
             self.template_dir = Path(template_location).resolve(strict=True)
-            remote = False
-        self.prepare_template_dir(remote=remote)
         self.context = {"cookiecutter": {}, "pytemplator": {}}
         self.no_input = no_input
 
@@ -95,29 +97,19 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
                     f"The template could not be cloned from {url}"
                 ) from error
 
-    def prepare_template_dir(self, remote: bool = False):
+    def prepare_template_dir(self):
         """Make sure the template directory is in the expected state."""
         with cd(self.template_dir):
-            try:
-                subprocess.run(
-                    ["git", "status"],
-                    check=True,
-                    capture_output=True,
-                )
-            except subprocess.CalledProcessError:
-                logger.info("The template is a standard directory, not a git repo.")
-                return
-
             try:
                 subprocess.run(
                     ["git", "checkout", self.checkout_branch],
                     check=True,
                     capture_output=True,
                 )
-                # For a remote repo, we use git reset instead of git pull
-                # to alleviate index corruption if the local cache has been
-                # edited somehow since.
-                if remote:
+            except subprocess.CalledProcessError:
+                # If the cached repo has been edited somehow, the index might
+                # be corrupted so we do a hard reset to unblock things.
+                try:
                     subprocess.run(
                         ["git", "reset", "--hard", f"origin/{self.checkout_branch}"],
                         check=True,
@@ -128,15 +120,31 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
                         check=True,
                         capture_output=True,
                     )
-                    self.template_commit = subprocess.run(
-                        ["git", "rev-parse", "HEAD"],
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                    ).stdout
-            except subprocess.CalledProcessError as error:
-                logger.error("The specified branch to checkout does not exist.")
-                raise InvalidInputError from error
+                except subprocess.CalledProcessError as error:
+                    logger.error("The specified branch to checkout does not exist.")
+                    raise InvalidInputError from error
+
+    @cached_property
+    def last_commit_hash(self):
+        """Return the hash of the latest commit.
+
+        This is recorded in the .pytemplator.yml file to allow for
+        further re-templating in the future.
+
+        This is kept separate from the prepare_template_dir as unlike the
+        checkout logic, storing the commit for a git repo on the filesystem
+        is something useful which doesn't lead to unexpected side-effects.
+        """
+        with cd(self.template_dir):
+            try:
+                return subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+            except subprocess.CalledProcessError:
+                return None
 
     def generate_context(self):
         """Generate the context for the `initialize` part of the template."""
@@ -238,7 +246,7 @@ class Templator:  # pylint: disable=too-many-instance-attributes, too-many-argum
                     "pytemplator_version": __version__,
                     "template_location": self.template_location,
                     "checkout_branch": self.checkout_branch,
-                    "template_commit": self.template_commit,
+                    "template_commit": self.last_commit_hash,
                     "context": context,
                 },
                 conf_file,
